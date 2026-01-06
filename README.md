@@ -80,9 +80,3 @@ Data is stored in memory only
 Data resets when program closes
 
 Console-based (no GUI)
-
-These are intentional to keep the system simple and focused.
-
-Conclusion
-
-This project demonstrates core programming fundamentals and basic system design. It solves a real problem at an appropriate complexity level for an introductory computer science course.
