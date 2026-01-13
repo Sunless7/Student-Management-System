@@ -1,82 +1,116 @@
-Problem Statement
+# Student Management System
 
-Manual tracking of students and grades is error-prone. This program provides a simple system to store, view, update, and delete student records using a menu-driven interface.
+## Overview
 
-Features
+This project is a **desktop Student Management System** built with **Python**, featuring a **graphical user interface**, a **persistent relational database**, and a clear separation between frontend, backend, and data layers.
 
-Add a student (ID, name, grade)
+The goal of the project is to demonstrate core computer science concepts such as **data modeling**, **database relationships**, **SQL queries**, and **application architecture**.
 
-View all students
+---
 
-Update a student’s grade
+## Architecture
 
-Delete a student
+The system is structured into three layers:
 
-Prevents duplicate student IDs
+* **Frontend**: Tkinter GUI for user interaction
+* **Backend**: Python functions implementing application logic
+* **Database**: SQLite relational database for persistent storage
 
-Runs continuously until user exits
+**Data flow**:
+User → GUI → Backend Logic → SQLite Database → GUI Output
 
-Data Structure
+---
 
-Uses a dictionary
+## Database Design
 
-Key: student_id
+The application uses a **relational SQLite database** (`school.db`) with multiple tables and defined relationships.
 
-Value: another dictionary containing name and grade
+### Tables
 
-Example:
+* **students**
 
-{
-  "101": {"name": "John", "grade": "85"},
-  "102": {"name": "Ana", "grade": "92"}
-}
+  * `id` (PRIMARY KEY)
+  * `name`
 
-Program Structure
+* **courses**
 
-add_student() – validates and inserts data
+  * `id` (PRIMARY KEY)
+  * `name`
+  * `semester`
 
-view_students() – iterates and displays records
+* **grades**
 
-update_student() – modifies existing data
+  * `student_id` (FOREIGN KEY → students.id)
+  * `course_id` (FOREIGN KEY → courses.id)
+  * `grade`
 
-delete_student() – removes records
+This design avoids data duplication and allows meaningful queries across related entities.
 
-menu() – controls program flow using a loop
+---
 
-Each function has a single responsibility.
+## Features
 
-Concepts Demonstrated
+* Add students, courses, and grades
+* Persistent data storage using SQLite
+* Relational queries using JOINs
+* **Average grade per course**
+* **Student ranking by average grade**
+* **Filtering results by semester**
+* Import students from CSV file
+* Export generated reports to CSV
+* Simple and clear graphical interface
 
-Variables and data types
+---
 
-Dictionaries
+## Key Concepts Demonstrated
 
-Functions
+* Relational database modeling
+* Primary and foreign keys
+* SQL aggregation (`AVG`, `GROUP BY`)
+* Sorting and ranking (`ORDER BY`)
+* Filtering (`WHERE`)
+* CRUD operations
+* Separation of concerns (UI vs logic vs data)
+* File import/export (CSV)
 
-Loops (while)
+---
 
-Conditionals (if/elif/else)
+## Why This Project
 
-Input validation
+This project goes beyond a basic console CRUD application by introducing:
 
-Modular program design
+* A real database instead of in-memory storage
+* Multiple related tables instead of a single flat structure
+* Computed data (averages, rankings)
+* A graphical frontend instead of terminal input
 
-How It Works (Execution Flow)
+It reflects how real-world applications manage structured data.
 
-Program starts and shows menu
+---
 
-User selects an option
+## Limitations
 
-Corresponding function executes
+* Desktop-only application
+* Basic UI without advanced validation
+* Single-user local database
 
-Program returns to menu
+These limitations are intentional to keep the project focused and understandable.
 
-Ends only when user selects Exit
+---
 
-Limitations
+## Possible Improvements
 
-Data is stored in memory only
+* Search functionality
+* Advanced input validation
+* User authentication
+* Web-based frontend
+* Data visualization
 
-Data resets when program closes
+---
 
-Console-based (no GUI)
+## Technologies Used
+
+* Python 3
+* SQLite
+* Tkinter
+* CSV module
