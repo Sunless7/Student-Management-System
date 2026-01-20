@@ -249,6 +249,15 @@ class GradeManager:
         else: return 'F'
     
     @staticmethod
+    def grade_to_gpa_points(grade: float) -> float:
+        """Convert numerical grade (0-100) to GPA points (0-4.0)"""
+        if grade >= 90: return 4.0
+        elif grade >= 80: return 3.0
+        elif grade >= 70: return 2.0
+        elif grade >= 60: return 1.0
+        else: return 0.0
+    
+    @staticmethod
     def add(sid: str, cid: str, grade: float, user_id: int):
         try:
             grade = float(grade)
@@ -269,17 +278,28 @@ class GradeManager:
     
     @staticmethod
     def update_student_gpa(sid: str):
-        """Recalculate and update student's weighted GPA"""
+        """Recalculate and update student's weighted GPA on 4.0 scale"""
+        # Get all grades with credits for this student
         result = Database.execute("""
-            SELECT SUM(g.grade * c.credits) / SUM(c.credits) as gpa
+            SELECT g.grade, c.credits
             FROM grades g
             JOIN courses c ON c.id = g.course_id
             WHERE g.student_id = ?
         """, (sid,), fetch=True)
         
-        if result and result[0][0]:
-            Database.execute("UPDATE students SET gpa = ? WHERE id = ?", 
-                           (round(result[0][0], 2), sid))
+        if result:
+            total_points = 0
+            total_credits = 0
+            
+            for grade, credits in result:
+                gpa_points = GradeManager.grade_to_gpa_points(grade)
+                total_points += gpa_points * credits
+                total_credits += credits
+            
+            if total_credits > 0:
+                gpa = total_points / total_credits
+                Database.execute("UPDATE students SET gpa = ? WHERE id = ?", 
+                               (round(gpa, 2), sid))
     
     @staticmethod
     def get_failing_students() -> List[Tuple]:
@@ -312,11 +332,11 @@ class Analytics:
         rankings = Analytics.get_gpa_rankings()
         if rankings:  # FIX: Check if results exist
             for name, sid, gpa, courses in rankings:
-                if gpa >= 85:
+                if gpa >= 3.5:
                     status = "Dean's List"
-                elif gpa >= 70:
+                elif gpa >= 2.0:
                     status = "Good Standing"
-                elif gpa >= 60:
+                elif gpa >= 1.0:
                     status = "Warning"
                 else:
                     status = "Academic Probation"
@@ -554,7 +574,7 @@ class AcademicApp:
         
         # Treeview
         self.students_tree = ttk.Treeview(right,
-            columns=("ID", "Name", "Email", "Major", "Year", "Grade", "Status"),
+            columns=("ID", "Name", "Email", "Major", "Year", "GPA", "Status"),
             show="headings", height=25)
         
         for col in self.students_tree["columns"]:
