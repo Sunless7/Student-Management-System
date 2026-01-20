@@ -346,7 +346,7 @@ class Analytics:
     @staticmethod
     def get_course_statistics() -> List[Tuple]:
         return Database.execute("""
-            SELECT c.name, c.semester, COUNT(g.id) as enrolled,
+            SELECT c.name, c.semester, COUNT(DISTINCT g.student_id) as enrolled,
                    ROUND(AVG(g.grade), 2) as avg_grade,
                    MIN(g.grade) as min_grade,
                    MAX(g.grade) as max_grade
