@@ -1,116 +1,172 @@
-# Student Management System
+# Academic Performance System
 
-## Overview
+A desktop application for managing student records, courses, and grades with automatic GPA calculation.
 
-This project is a **desktop Student Management System** built with **Python**, featuring a **graphical user interface**, a **persistent relational database**, and a clear separation between frontend, backend, and data layers.
+## What This Does
 
-The goal of the project is to demonstrate core computer science concepts such as **data modeling**, **database relationships**, **SQL queries**, and **application architecture**.
+This is a student management system that helps schools track students, courses, and grades. It automatically calculates GPAs on a 4.0 scale, identifies failing students, and generates reports.
 
----
+## Main Features
 
-## Architecture
+### Students Tab
+- **Add students** with ID, name, email, major, and enrollment year
+- **Update student information** by selecting them from the table
+- **Delete students** individually or all at once
+- **Search students** by ID, name, or major
+- **Import students** from CSV files
+- **View transcripts** showing all courses and grades for a student
+- **GPA displayed** on 4.0 scale (automatically calculated)
 
-The system is structured into three layers:
+### Courses Tab
+- **Add courses** with course ID, name, semester, credits (1-6), and instructor
+- **Delete courses** individually or all at once
+- **View course catalog** with all available courses
 
-* **Frontend**: Tkinter GUI for user interaction
-* **Backend**: Python functions implementing application logic
-* **Database**: SQLite relational database for persistent storage
+### Grades Tab
+- **Record grades** (0-100) for students in courses
+- **Automatic letter grade conversion**: A (90+), B (80-89), C (70-79), D (60-69), F (<60)
+- **Automatic GPA calculation** on 4.0 scale based on course credits (weighted average)
+- **See failing students** - anyone with grades below 60 shows up automatically
 
-**Data flow**:
-User → GUI → Backend Logic → SQLite Database → GUI Output
+### Analytics Tab
+- **GPA Rankings** - All students ranked by GPA (0.0-4.0 scale)
+- **Academic Status** - Classifies students as:
+  - Dean's List (GPA ≥ 3.5)
+  - Good Standing (GPA ≥ 2.0)
+  - Warning (GPA ≥ 1.0)
+  - Academic Probation (GPA < 1.0)
+- **Course Statistics** - Shows enrolled students (unique count), average grade, min, max grades per course
+- **Export to CSV** - Save all data to a file
 
----
+## How to Run
 
-## Database Design
+1. Make sure Python 3.7+ is installed
+2. Run the program: `python final_project.py`
+3. Login with:
+   - Username: `admin`
+   - Password: `admin123`
 
-The application uses a **relational SQLite database** (`school.db`) with multiple tables and defined relationships.
+## How to Use
 
-### Tables
+### Step 1: Add Students
+1. Go to "Students" tab
+2. Fill in ID (required) and Name (required)
+3. Fill in email, major, year (optional)
+4. Click "Add Student"
 
-* **students**
+### Step 2: Add Courses
+1. Go to "Courses" tab
+2. Fill in Course ID, Name, Semester, Credits (1-6)
+3. Click "Add Course"
 
-  * `id` (PRIMARY KEY)
-  * `name`
+### Step 3: Record Grades
+1. Go to "Grades & Failing Students" tab
+2. Enter Student ID, Course ID, and Grade (0-100)
+3. Click "Record Grade"
+4. The system automatically:
+   - Converts to letter grade
+   - Converts to GPA points (A=4.0, B=3.0, C=2.0, D=1.0, F=0.0)
+   - Updates the student's GPA on 4.0 scale
+   - Shows the student in failing list if grade < 60
 
-* **courses**
+### Step 4: View Reports
+1. Go to "Analytics & Reports" tab
+2. Click any button to see different reports
+3. Use "Export Full Report" to save data to CSV
 
-  * `id` (PRIMARY KEY)
-  * `name`
-  * `semester`
+## How It Works (Technical)
 
-* **grades**
+### Database (SQLite)
+The program stores data in a file called `academic.db` with these tables:
 
-  * `student_id` (FOREIGN KEY → students.id)
-  * `course_id` (FOREIGN KEY → courses.id)
-  * `grade`
+- **students** - Stores student info (ID, name, email, major, year, GPA on 4.0 scale, status)
+- **courses** - Stores course info (ID, name, semester, credits, instructor)
+- **grades** - Links students to courses with their numerical grades (0-100) and letter grades
+- **users** - Login information with encrypted passwords
+- **activity_log** - Tracks all actions for security
 
-This design avoids data duplication and allows meaningful queries across related entities.
+### Code Structure
 
----
+**Database Layer** (`Database` class)
+- Connects to SQLite database
+- Executes SQL queries safely
+- Creates tables on first run
 
-## Features
+**Business Logic** (Manager classes)
+- `StudentManager` - Add, update, delete, search students
+- `CourseManager` - Add, delete courses
+- `GradeManager` - Record grades, calculate letter grades, convert to GPA on 4.0 scale
+- `Analytics` - Generate reports
+- `Auth` - Handle login with password encryption (SHA-256)
 
-* Add students, courses, and grades
-* Persistent data storage using SQLite
-* Relational queries using JOINs
-* **Average grade per course**
-* **Student ranking by average grade**
-* **Filtering results by semester**
-* Import students from CSV file
-* Export generated reports to CSV
-* Simple and clear graphical interface
+**User Interface** (Tkinter)
+- `LoginWindow` - Login screen
+- `AcademicApp` - Main application with tabs
 
----
+### Key Features Explained
 
-## Key Concepts Demonstrated
+**GPA Calculation (4.0 Scale)**
+- Numerical grades (0-100) are converted to GPA points:
+  - A (90-100) = 4.0 points
+  - B (80-89) = 3.0 points
+  - C (70-79) = 2.0 points
+  - D (60-69) = 1.0 points
+  - F (0-59) = 0.0 points
+- Weighted average based on course credits
+- Formula: (GPA_Points1 × Credits1 + GPA_Points2 × Credits2) / Total Credits
+- Example: Student gets A (4.0) in 3-credit course and B (3.0) in 3-credit course
+  - GPA = (4.0×3 + 3.0×3) / 6 = 21/6 = 3.5
+- Updates automatically whenever a grade is added
 
-* Relational database modeling
-* Primary and foreign keys
-* SQL aggregation (`AVG`, `GROUP BY`)
-* Sorting and ranking (`ORDER BY`)
-* Filtering (`WHERE`)
-* CRUD operations
-* Separation of concerns (UI vs logic vs data)
-* File import/export (CSV)
+**Data Validation**
+- Checks email format with regex
+- Ensures grades are 0-100
+- Verifies student and course exist before adding grades
+- Prevents duplicate student IDs
+- Leading zeros in IDs are preserved (0909 stays as 0909)
 
----
+**Security**
+- Passwords are encrypted (SHA-256 hash)
+- SQL injection prevented with parameterized queries
+- All actions are logged with timestamps
 
-## Why This Project
+**Cascading Deletes**
+- Delete a student → all their grades are deleted too
+- Delete a course → all grades for that course are deleted too
+- Delete all courses → all student GPAs reset to 0.0
+- Keeps database consistent
 
-This project goes beyond a basic console CRUD application by introducing:
+**Course Enrollment Count**
+- Counts unique students per course (not total grade records)
+- If 1 student takes 4 courses, each course shows "1 enrolled"
 
-* A real database instead of in-memory storage
-* Multiple related tables instead of a single flat structure
-* Computed data (averages, rankings)
-* A graphical frontend instead of terminal input
+## CSV Import Format
 
-It reflects how real-world applications manage structured data.
+To import multiple students at once, create a CSV file like this:
 
----
+```csv
+id,name,email,major,enrollment_year
+S001,John Doe,john@email.com,Computer Science,2024
+S002,Jane Smith,jane@email.com,Mathematics,2024
+0909,Mari,mari@email.com,Computer Science,2024
+```
 
-## Limitations
+Then click "Import CSV" in the Students tab.
 
-* Desktop-only application
-* Basic UI without advanced validation
-* Single-user local database
+## Important Notes
 
-These limitations are intentional to keep the project focused and understandable.
+- The database file `academic.db` is created automatically
+- Don't edit the database file directly
+- **GPA is on 4.0 scale** (not 0-100)
+- **Grades are 0-100** (get converted to GPA points)
+- Leading zeros in IDs are preserved (0909 stays as 0909)
+- Deleting students or courses also deletes their grades
+- Delete operations cannot be undone (requires double confirmation)
+- Course statistics show unique student enrollment count
 
----
+## System Requirements
 
-## Possible Improvements
-
-* Search functionality
-* Advanced input validation
-* User authentication
-* Web-based frontend
-* Data visualization
-
----
-
-## Technologies Used
-
-* Python 3
-* SQLite
-* Tkinter
-* CSV module
+- Python 3.7 or higher
+- Tkinter (usually comes with Python)
+- SQLite3 (comes with Python)
+- Works on Windows, Mac, Linux
