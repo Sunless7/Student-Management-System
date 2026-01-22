@@ -3,8 +3,13 @@ from tkinter import ttk, messagebox, filedialog
 
 from database import Database
 from managers import (
-    StudentManager, CourseManager, GradeManager, Analytics, ImportExport
+    StudentManager,
+    CourseManager,
+    GradeManager,
+    Analytics,
+    ImportExport
 )
+
 
 class AcademicApp:
     def __init__(self, root, user_data):
@@ -12,10 +17,21 @@ class AcademicApp:
         self.user_id, self.username, self.role = user_data
 
         self.root.title(f"Academic System - {self.username} ({self.role})")
-        self.root.geometry("1200x700")
 
         self.setup_ui()
         self.load_data()
+
+        # FORCE maximize after everything else sets geometry
+        self.root.after(0, self._go_fullscreen)
+
+    def _go_fullscreen(self):
+        try:
+            self.root.state("zoomed")  # Windows maximize
+        except Exception:
+            sw = self.root.winfo_screenwidth()
+            sh = self.root.winfo_screenheight()
+            self.root.geometry(f"{sw}x{sh}+0+0")
+
 
     def setup_ui(self):
         self.notebook = ttk.Notebook(self.root)
@@ -41,12 +57,15 @@ class AcademicApp:
         tk.Label(left, text="Student Management", font=("Arial", 12, "bold")).pack(pady=(0, 10))
 
         self.student_entries = {}
-        for label, key in [("ID*:", "id"), ("Name*:", "name"), ("Email:", "email"),
+        for label, key in [("ID (auto):", "id"), ("Name*:", "name"), ("Email:", "email"),
                            ("Major:", "major"), ("Year:", "year")]:
             tk.Label(left, text=label).pack(anchor="w")
             entry = tk.Entry(left, width=30)
             entry.pack(pady=(0, 5))
             self.student_entries[key] = entry
+
+            if key == "id":
+                entry.config(state="readonly")
 
         tk.Label(left, text="Status:").pack(anchor="w")
         self.student_status = tk.StringVar(value="active")
@@ -234,20 +253,28 @@ class AcademicApp:
 
     # ---------- student actions ----------
     def add_student(self):
-        try:
-            StudentManager.add(
-                self.student_entries["id"].get(),
-                self.student_entries["name"].get(),
-                self.student_entries["email"].get(),
-                self.student_entries["major"].get(),
-                int(self.student_entries["year"].get() or 2024),
-                self.user_id
-            )
-            messagebox.showinfo("Success", "Student added successfully")
-            self.load_students()
-            self.clear_student_fields()
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
+     try:
+        # Year validation moved to StudentManager, but keep a clean UX here too:
+        year_text = self.student_entries["year"].get().strip()
+        if year_text and not year_text.isdigit():
+            raise ValueError("Year must be a number (example: 2016).")
+
+        new_id = StudentManager.add(
+            self.student_entries["id"].get(),          # will be empty most of the time (readonly)
+            self.student_entries["name"].get(),
+            self.student_entries["email"].get(),
+            self.student_entries["major"].get(),
+            year_text,                                 # pass string; manager parses
+            self.user_id
+        )
+
+        messagebox.showinfo("Success", f"Student added successfully.\nGenerated ID: {new_id}")
+        self.load_students()
+        self.clear_student_fields()
+
+     except Exception as e:
+        messagebox.showerror("Error", str(e))
+
 
     def update_student(self):
         selected = self.students_tree.selection()
@@ -326,16 +353,27 @@ class AcademicApp:
         for entry in self.student_entries.values():
             entry.delete(0, tk.END)
 
+        self.student_entries["id"].config(state="normal")
+        self.student_entries["id"].delete(0, tk.END)
         self.student_entries["id"].insert(0, str(values[0]))
-        self.student_entries["name"].insert(0, str(values[1]))
-        self.student_entries["email"].insert(0, str(values[2]) if values[2] else "")
-        self.student_entries["major"].insert(0, str(values[3]) if values[3] else "")
-        self.student_entries["year"].insert(0, str(values[4]) if values[4] else "")
-        self.student_status.set(values[6])
+        self.student_entries["id"].config(state="readonly")
+
 
     def clear_student_fields(self):
-        for entry in self.student_entries.values():
-            entry.delete(0, tk.END)
+    # Clear ID (readonly needs temporary normal state)
+     id_entry = self.student_entries["id"]
+     id_entry.config(state="normal")
+     id_entry.delete(0, tk.END)
+     id_entry.config(state="readonly")
+
+    # Clear the rest
+     for k, entry in self.student_entries.items():
+        if k == "id":
+            continue
+        entry.delete(0, tk.END)
+
+        self.student_status.set("active")
+
 
     # ---------- course actions ----------
     def add_course(self):
