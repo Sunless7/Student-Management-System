@@ -1,54 +1,132 @@
 import re
 import csv
-from typing import Optional, List, Tuple
+from datetime import datetime
+from typing import List, Tuple, Optional
+
 from database import Database
 
 class ActivityLog:
+    """Handle activity logging for audit trails"""
+    
     @staticmethod
-    def log(user_id: int, action: str, details: str = ""):
+    def log(user_id: int, action: str, details: str):
+        """Log an activity to the database"""
         Database.execute(
-            "INSERT INTO activity_log (user_id, action, details) VALUES (?, ?, ?)",
-            (user_id, action, details),
+            "INSERT INTO activity_log (user_id, action, details, timestamp) VALUES (?, ?, ?, ?)",
+            (user_id, action, details, datetime.now())
         )
 
 class StudentManager:
+    """Handle all student-related operations (with auto-generated Student ID)"""
+
     @staticmethod
     def validate_email(email: str) -> bool:
         return bool(re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email))
 
     @staticmethod
-    def add(sid: str, name: str, email: str, major: str, year: int, user_id: int):
-        if len(sid) < 3 or not sid.isalnum():
-            raise ValueError("Student ID must be at least 3 alphanumeric characters")
+    def _generate_student_id() -> str:
+        """
+        Generate sequential IDs like S0001, S0002, ...
+        Uses the highest existing S#### and increments.
+        """
+        row = Database.execute(
+            "SELECT id FROM students WHERE id LIKE 'S____' ORDER BY id DESC LIMIT 1",
+            fetch=True
+        )
+        if row and row[0] and row[0][0]:
+            last_id = row[0][0]  # e.g. "S0042"
+            try:
+                num = int(last_id[1:])
+            except ValueError:
+                num = 0
+        else:
+            num = 0
+
+        # Loop until unique (handles gaps / weird existing ids)
+        while True:
+            num += 1
+            new_id = f"S{num:04d}"
+            exists = Database.execute(
+                "SELECT 1 FROM students WHERE id = ? LIMIT 1",
+                (new_id,),
+                fetch=True
+            )
+            if not exists:
+                return new_id
+
+    @staticmethod
+    def _parse_year(year_value) -> int:
+        """
+        Accepts int, numeric string, or blank/None -> current year.
+        """
+        if year_value is None:
+            return datetime.now().year
+
+        if isinstance(year_value, int):
+            return year_value
+
+        s = str(year_value).strip()
+        if s == "":
+            return datetime.now().year
+        if not s.isdigit():
+            raise ValueError("Year must be a number (example: 2016).")
+
+        return int(s)
+
+    @staticmethod
+    def add(sid: str, name: str, email: str, major: str, year, user_id: int) -> str:
+        # Auto-generate ID if empty
+        sid = (sid or "").strip()
+        if sid == "":
+            sid = StudentManager._generate_student_id()
+        else:
+            # If user typed an ID anyway, enforce rules
+            if len(sid) < 3 or not sid.isalnum():
+                raise ValueError("Student ID must be at least 3 alphanumeric characters")
+
         if not name.strip():
             raise ValueError("Student name is required")
+
+        email = (email or "").strip()
         if email and not StudentManager.validate_email(email):
             raise ValueError("Invalid email format")
 
+        year_int = StudentManager._parse_year(year)
+
         Database.execute(
             "INSERT INTO students (id, name, email, major, enrollment_year) VALUES (?, ?, ?, ?, ?)",
-            (sid, name, email or None, major, year),
+            (sid, name.strip(), email or None, (major or "").strip(), year_int)
         )
+
         ActivityLog.log(user_id, "add_student", f"Added: {name} ({sid})")
+        return sid  # return generated/used ID
 
     @staticmethod
     def update(sid: str, name: str, email: str, major: str, status: str, user_id: int):
+        sid = str(sid).strip()
+        if not sid:
+            raise ValueError("Student ID is missing")
+
+        email = (email or "").strip()
         if email and not StudentManager.validate_email(email):
             raise ValueError("Invalid email format")
 
         Database.execute(
             "UPDATE students SET name=?, email=?, major=?, status=? WHERE id=?",
-            (name, email or None, major, status, sid),
+            (name.strip(), email or None, (major or "").strip(), status, sid)
         )
+
         ActivityLog.log(user_id, "update_student", f"Updated: {sid}")
 
     @staticmethod
     def delete(sid: str, user_id: int):
-        result = Database.execute("SELECT name FROM students WHERE id = ?", (sid,), fetch=True)
+        result = Database.execute(
+            "SELECT name FROM students WHERE id = ?", (sid,), fetch=True
+        )
         if not result:
             raise ValueError(f"Student {sid} not found")
-        student_name = result[0][0]
 
+        student_name = result[0][0]
         Database.execute("DELETE FROM students WHERE id = ?", (sid,))
         ActivityLog.log(user_id, "delete_student", f"Deleted: {student_name} ({sid})")
         return student_name
@@ -65,8 +143,7 @@ class StudentManager:
         pattern = f"%{query}%"
         return Database.execute(
             "SELECT * FROM students WHERE id LIKE ? OR name LIKE ? OR major LIKE ?",
-            (pattern, pattern, pattern),
-            fetch=True,
+            (pattern, pattern, pattern), fetch=True
         )
 
     @staticmethod
