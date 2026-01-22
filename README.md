@@ -34,6 +34,8 @@ The application uses a graphical user interface (GUI) and a local SQLite databas
 - CSV import/export
 - Activity logging
 - Clean separation of logic into multiple files (modular design)
+- Automatic student ID generation (no manual ID input required)
+
 
 ---
 
@@ -61,29 +63,29 @@ app_window.py # Main application UI
 
 ## How to Run (IMPORTANT)
 
-⚠️ **You must run the program from the project root directory**  
-(the same folder where `main.py` is located).
+The application must be run from the project root directory
+(the folder where `main.py` is located).
 
-### Correct Way
+### Steps
 
 1. Clone the repository:
-   ```bash
    git clone https://github.com/Sunless7/Student-Management-System.git
 
+2. Enter the project folder:
+   cd Student-Management-System
 
-Enter the project folder:
+3. Run the application:
+   python main.py
+   (or)
+   py main.py
 
-cd Student-Management-System
-python main.py
 
+## Window Behavior
 
-Run the application:
+- After successful login, the main application window opens maximized.
+- The layout automatically adapts to screen resolution.
+- No manual resizing is required.
 
-python main.py
-
-If python is not recognized, try:
-
-py main.py
 
 Login Credentials
 
